@@ -92,11 +92,12 @@ def test_multivariate_gaussian():
 
     # Question 5 - Likelihood evaluation
     func = np.linspace(-10, 10, 200)
-    cartesian = np.array(np.meshgrid(func, func)).T.reshape(-1, 2)
-    log_likelihoods = []
-    for x in cartesian:
-        mu = np.array([x[0], 0, x[1], 0])
-        log_likelihoods.append(MultivariateGaussian.log_likelihood(mu, cov=sigma, X=S))
+    cartesian = (np.array([np.repeat(func, len(func)), np.tile(func, len(func))])).T
+
+    def calculate_log_likelihood(s):
+        return MultivariateGaussian.log_likelihood(np.array([s[0], 0, s[1], 0]), sigma, S)
+
+    log_likelihoods = np.apply_along_axis(calculate_log_likelihood, 1, cartesian)
     go.Figure(go.Heatmap(x=cartesian[:, 1], y=cartesian[:, 0], z=log_likelihoods, colorbar={"title": 'log-likelihood'}),
               layout=go.Layout(title=Q5_HEADER, height=550, width=650)). \
         update_yaxes(title_text=r"$f_{1}\ values$"). \
