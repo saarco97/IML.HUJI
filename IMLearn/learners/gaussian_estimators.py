@@ -174,7 +174,7 @@ class MultivariateGaussian:
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        sqrt = (((2 * np.pi) ** X.shape[0]) * det(self.cov_)) ** 0.5
+        sqrt = (((2 * np.pi) ** X.shape[1]) * det(self.cov_)) ** 0.5
         X_centered = X - self.mu_
         exp = np.exp(-0.5 * X_centered.T @ inv(self.cov_) @ X_centered)
         return exp / sqrt
@@ -201,7 +201,5 @@ class MultivariateGaussian:
         log_likely = -(X.size / 2) * np.log(2 * np.pi)
         log_likely -= (X.shape[0] / 2) * np.product(slogdet(cov))
         cov_inverse = inv(cov)
-        for sample in X:
-            sample_centered = (sample - mu)
-            log_likely -= sample_centered.T @ cov_inverse @ sample_centered / 2
-        return log_likely
+        sample_centered = X - mu
+        return log_likely - np.sum(sample_centered @ cov_inverse * sample_centered) / 2
