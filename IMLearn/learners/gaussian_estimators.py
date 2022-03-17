@@ -176,7 +176,8 @@ class MultivariateGaussian:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
         sqrt = (((2 * np.pi) ** X.shape[1]) * det(self.cov_)) ** 0.5
         X_centered = X - self.mu_
-        exp = np.exp(-0.5 * X_centered.T @ inv(self.cov_) @ X_centered)
+        inv_cov = inv(self.cov_)
+        exp = np.exp(np.apply_along_axis(lambda S: -0.5 * S.T @ inv_cov @ S, 1, X_centered))
         return exp / sqrt
 
     @staticmethod
