@@ -87,5 +87,4 @@ class LinearRegression(BaseEstimator):
             Performance under MSE loss function
         """
         y_predict = self._predict(X)
-        # TODO - check if I can use mean_square_error from loss_functions.py
         return np.mean((y_predict - y) ** 2)

@@ -10,13 +10,14 @@ import plotly.io as pio
 pio.templates.default = "simple_white"
 
 NOT_KEEP_FEATURES = ["id", "date", "lat", "long"]
-# id : A notation for a house
-# date: Date house was sold
-# lat: Latitude coordinate
-# long: Longitude coordinate
-
-MUST_BE_POSITIVE = ["price", "sqft_living", "sqft_lot", "sqft_above", "yr_built", "sqft_living15", "sqft_lot15"]
+MUST_BE_POSITIVE = ["price", "sqft_living", "sqft_lot", "sqft_above",
+                    "yr_built", "sqft_living15", "sqft_lot15"]
 MUST_BE_NOT_NEGATIVE = ["bathrooms", "floors", "sqft_basement", "yr_renovated"]
+MAX_SQFT_LOT15 = 600000
+MAX_SQFT_LOT = 1200000
+MAX_BEDROOM_NUM = 15
+THRESHOLD_RECENT_RENO = 75
+
 
 def load_data(filename: str):
     """
@@ -36,31 +37,29 @@ def load_data(filename: str):
     # drop unnecessary features
     for col in NOT_KEEP_FEATURES:
         houses_df = houses_df.drop(columns=col)
-
     for col in MUST_BE_NOT_NEGATIVE:
         houses_df = houses_df[houses_df[col] >= 0]
-
     for col in MUST_BE_POSITIVE:
         houses_df = houses_df[houses_df[col] > 0]
 
     houses_df.insert(0, 'intercept', 1, True)
 
-    houses_df["is_renovated"] = np.where(houses_df["yr_renovated"] >=
-                                         np.percentile(houses_df.yr_renovated.unique(), 50), 1, 0)
+    houses_df["was_recently_reno"] = np.where(
+        houses_df["yr_renovated"] >=
+        np.percentile(houses_df.yr_renovated.unique(), THRESHOLD_RECENT_RENO), 1, 0)
     houses_df = houses_df.drop(columns="yr_renovated")
 
-    # TODO - look on this
-    # houses_df["decade_built"] = (houses_df["yr_built"] / 10).astype(int)
-    # houses_df = houses_df.drop(columns="yr_built")
+    min_year = houses_df["yr_built"].min()
+    houses_df["rank_built"] = houses_df["yr_built"] - min_year
+    houses_df = houses_df.drop(columns="yr_built")
 
-    # TODO - decide what about zipcode
-    houses_df = pd.get_dummies(houses_df, prefix='zipcode_', columns=['zipcode'])
-    # houses_df = pd.get_dummies(houses_df, prefix='decade_built_', columns=['decade_built'])
+    houses_df["zipcode"] = houses_df["zipcode"].astype(int)
+    houses_df = pd.get_dummies(houses_df, prefix='zip_', columns=['zipcode'])
 
     # There are some rows that are really unusual so we want to remove them
-    houses_df = houses_df[houses_df["bedrooms"] < 15]
-    houses_df = houses_df[houses_df["sqft_lot"] < 1200000]
-    houses_df = houses_df[houses_df["sqft_lot15"] < 600000]
+    houses_df = houses_df[houses_df["bedrooms"] < MAX_BEDROOM_NUM]
+    houses_df = houses_df[houses_df["sqft_lot"] < MAX_SQFT_LOT]
+    houses_df = houses_df[houses_df["sqft_lot15"] < MAX_SQFT_LOT15]
 
     return houses_df.drop(columns="price"), houses_df["price"]
 
@@ -82,15 +81,14 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = ".") ->
     output_path: str (default ".")
         Path to folder in which plots are saved
     """
-
-    X_no_intercept = X.drop(columns="intercept")
-
-    for feature in X_no_intercept:
-        cov = np.cov(X_no_intercept[feature], y)[0, 1]
-        deviations_mult = (np.std(X_no_intercept[feature]) * np.std(y))
+    X_work = X.loc[:, ~(X.columns.str.contains('^zip_', case=False))].\
+        drop(columns="intercept")
+    for feature in X_work:
+        cov = np.cov(X_work[feature], y)[0, 1]
+        deviations_mult = (np.std(X_work[feature]) * np.std(y))
         pearson = cov / deviations_mult
-        figure = px.scatter(pd.DataFrame({'x_axis': X_no_intercept[feature], 'y_axis': y}),
-                            x="x_axis", y="y_axis", trendline="ols",
+        figure = px.scatter(pd.DataFrame({f"{feature} Values": X_work[feature], 'Response Values': y}),
+                            x=f"{feature} Values", y="Response Values", trendline="ols",
                             title=f"Correlation Between {feature} Values and Response "
                                   f"<br>Pearson Correlation: {pearson}",
                             labels={"x": f"Values of {feature}", "y": "Responses"})
@@ -103,7 +101,7 @@ if __name__ == '__main__':
     X, y = load_data("../datasets/house_prices.csv")
 
     # Question 2 - Feature evaluation with respect to response
-    # feature_evaluation(X, y, "./correlation_graphs")
+    feature_evaluation(X, y, "./correlation_graphs")
 
     # Question 3 - Split samples into training- and testing sets.
     train_X, train_y, test_X, test_y = split_train_test(X, y)
@@ -115,15 +113,24 @@ if __name__ == '__main__':
     #   3) Test fitted model over test set
     #   4) Store average and variance of loss over test set
     # Then plot average loss as function of training size with error ribbon of size (mean-2*std, mean+2*std)
-    results = []
-    for i in range(10, 101):
-        for time in range(10):
-            n = round(len(train_y) * (i / 100))
-            model = LinearRegression(include_intercept=False).fit(train_X[:n], train_y[:n])
-            results.append(model.loss(test_X, test_y))
 
-    fig = go.Figure(go.Scatter(x=sorted(list(range(10, 101)) * 10), y=results, mode="markers"),
+    results = np.empty((91, 10))
+    for i in range(10, 101):
+        for j in range(10):
+            X = train_X.sample(frac=(i / 100))
+            y = train_y.reindex_like(X)
+            model = LinearRegression(include_intercept=False).fit(X, y)
+            results[i - 10][j] = model.loss(test_X, test_y)
+
+    mean_pred, std_pred = np.mean(results, axis=1), np.std(results, axis=1)
+
+    p = list(range(10, 101))
+    fig = go.Figure(go.Scatter(x=p, y=mean_pred, mode="markers+lines", name="Predicted Loss"),
                     layout=go.Layout(title="Model's MSE As A Function Of Portions Of Training data",
                                      xaxis=dict(title="Percentage of Training data"),
-                                     yaxis=dict(title="MSE Over Test data")))
+                                     yaxis=dict(title="MSE Over Test data"))). \
+        add_traces([go.Scatter(x=p, y=mean_pred - 2 * std_pred, fill=None, mode="lines",
+                               line=dict(color="lightgrey"), showlegend=False),
+                    go.Scatter(x=p, y=mean_pred + 2 * std_pred, fill='tonexty', mode="lines",
+                               line=dict(color="lightgrey"), showlegend=False)])
     fig.show()
