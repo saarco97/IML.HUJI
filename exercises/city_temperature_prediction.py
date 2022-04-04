@@ -61,14 +61,16 @@ if __name__ == '__main__':
 
     # Question 4 - Fitting model for different values of `k`
     train_X, train_y, test_X, test_y = split_train_test(df_israel["DayOfYear"], df_israel["Temp"])
-    losses = {'k': [], 'test_error': []}
+    losses = {'k': [], 'test_error': [], 'test_error_rounded': []}
     for k in list(range(1, 11)):
         model = PolynomialFitting(k).fit(train_X, train_y)
         error = model.loss(test_X, test_y)
         losses['k'].append(k)
         losses['test_error'].append(error)
+        losses['test_error_rounded'].append(round(error, 2))
         print(f"Degree k={k}, test error: {round(error, 2)}")
-    fig = px.bar(losses, x='k', y='test_error', title="Test Error as a function of Polynomial Degree")
+    fig = px.bar(losses, x='k', y='test_error', text='test_error_rounded',
+                 title="Test Error as a function of Polynomial Degree")
     fig.show()
 
     # Question 5 - Evaluating fitted model on different countries
