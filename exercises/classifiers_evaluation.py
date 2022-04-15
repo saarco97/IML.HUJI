@@ -43,18 +43,13 @@ def run_perceptron():
 
         # Fit Perceptron and record loss in each fit iteration
         losses = []
-
-        def callback(perceptron, cur_sample, cur_response):
-            losses.append(perceptron.loss(X, y))
-
-        Perceptron(callback=callback).fit(X, y)
-
-        indexed_losses = [(i+1, loss) for i, loss in enumerate(losses)]
+        Perceptron(
+            callback=lambda perceptron, sample, res: losses.append((len(losses) + 1, perceptron.loss(X, y)))).fit(X, y)
 
         # Plot figure of loss as function of fitting iteration
-        fig = px.line(indexed_losses, x=0, y=1,
-                      labels={'0': "algorithm's loss values", '1': 'fitting iteration'},
-                      title=f"{n} dataset:\n Loss Values As A Function Of Training Iterations")
+        fig = px.line(losses, x=0, y=1,
+                      labels={'1': "loss value", '0': 'iteration'},
+                      title=f"{n} dataset: Loss Values As A Function Of Training Iterations")
         fig.show()
 
 
@@ -80,7 +75,7 @@ def get_ellipse(mu: np.ndarray, cov: np.ndarray):
     xs = (l1 * np.cos(theta) * np.cos(t)) - (l2 * np.sin(theta) * np.sin(t))
     ys = (l1 * np.sin(theta) * np.cos(t)) + (l2 * np.cos(theta) * np.sin(t))
 
-    return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines", marker_color="black")
+    return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines", marker_color="black", showlegend=False)
 
 
 def compare_gaussian_classifiers():
@@ -95,21 +90,24 @@ def compare_gaussian_classifiers():
         models = {"Gaussian Naive Bayes": GaussianNaiveBayes().fit(X, y),
                   "LDA": LDA().fit(X, y)}
 
-        # Plot a figure with two suplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
+        # Plot a figure with two subplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
         # on the right. Plot title should specify dataset used and subplot titles should specify algorithm and accuracy
         # Create subplots
         from IMLearn.metrics import accuracy
-        lims = np.array([X.min(axis=0), X.max(axis=0)]).T + np.array([-.4, .4])
+        limits = np.array([X.min(axis=0), X.max(axis=0)]).T + np.array([-.4, .4])
         accuracies = {m_name: accuracy(y, m.predict(X)) for m_name, m in models.items()}
         fig = make_subplots(rows=1, cols=2,
                             subplot_titles=[rf"$\textbf{{{m}, accuracy: {accuracies[m]}}}$" for m in models.keys()],
                             horizontal_spacing=0.01, vertical_spacing=.03)
 
         # Add traces for data-points setting symbols and colors
+        symbols = np.array(["circle", "triangle-up", "square"])
+        colors = np.array(["cyan", "crimson", "chartreuse"])
         for i, m in enumerate(models.values()):
-            fig.add_traces([decision_surface(m.predict, lims[0], lims[1], showscale=False),
+            fig.add_traces([decision_surface(m.predict, limits[0], limits[1], showscale=False),
                             go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers", showlegend=False,
-                                       marker=dict(color=y, symbol=y, colorscale=[custom[0], custom[-1]],
+                                       marker=dict(color=colors[y], symbol=symbols[y],
+                                                   colorscale=[custom[0], custom[-1]],
                                                    line=dict(color="black", width=1)))],
                            rows=1, cols=(i % 2) + 1)
 
@@ -118,12 +116,16 @@ def compare_gaussian_classifiers():
             .update_xaxes(visible=False).update_yaxes(visible=False)
 
         # Add `X` dots specifying fitted Gaussians' means
-        centers = [[m.mu_, 1 / (2 * pi * np.linalg.det(m.cov_)) ** 0.5] for m in models.values()]
-        # TODO - add those centers to the plot
+        centers = np.array([m.mu_[:, i] for m in models.values() for i in range(m.classes_.size)])
+        fig.add_scatter(x=centers[:, 0], y=centers[:, 1],  mode="markers", showlegend=False,
+                        marker=dict(color="black", symbol="x", size=12))
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        for i, m in enumerate(models.values()):
-            fig.add_trace(get_ellipse(centers[i], m.cov_), row=1, col=(i % 2) + 1)
+        i = 0
+        for m in models.values():
+            for j in range(m.classes_.size):
+                fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
+            i += m.classes_.size
 
         fig.show()
 
@@ -131,4 +133,4 @@ def compare_gaussian_classifiers():
 if __name__ == '__main__':
     np.random.seed(0)
     run_perceptron()
-    # compare_gaussian_classifiers()
+    compare_gaussian_classifiers()

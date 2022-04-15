@@ -52,7 +52,7 @@ class LDA(BaseEstimator):
         self.cov_ = sum([(X[y == i] - self.mu_[:, i]).T @ (X[y == i] - self.mu_[:, i]) for i in self.classes_])
         self.cov_ /= y.size
         self._cov_inv = inv(self.cov_)
-        self.pi_ = np.array([X[y == i].mean() for i in self.classes_])
+        self.pi_ = np.array([len(X[y == i]) for i in self.classes_]) / y.size
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
