@@ -2,10 +2,12 @@ from typing import NoReturn
 from ...base import BaseEstimator
 import numpy as np
 
+
 class GaussianNaiveBayes(BaseEstimator):
     """
     Gaussian Naive-Bayes classifier
     """
+
     def __init__(self):
         """
         Instantiate a Gaussian Naive Bayes classifier
@@ -39,7 +41,13 @@ class GaussianNaiveBayes(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        self.classes_ = np.unique(y)
+        self.mu_ = np.array([X[y == i].mean(axis=0) for i in self.classes_]).T
+
+        # TODO
+        self.vars_ = []
+
+        self.pi_ = np.array([len(X[y == i]) for i in self.classes_]) / y.size
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -55,7 +63,11 @@ class GaussianNaiveBayes(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        #TODO
+        expression = np.log(self.pi_) - 0.5 * (self.mu_.T @ np.linalg.inv(self.vars_) @ self.mu_)
+        expression += X @  np.linalg.inv(self.vars_) @ self.mu_
+        expression += -0.5 * X @ np.linalg.inv(self.vars_) @ X.T
+        return np.argmax(expression, axis=1)
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -75,7 +87,9 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        raise NotImplementedError()
+        gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ np.linalg.inv(self.vars_) @ (X - self.mu_))) / (
+                2 * np.pi ** 0.5 * np.linalg.det(self.cov_))
+        return np.prod(gaussian_x * self.pi_)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -95,4 +109,4 @@ class GaussianNaiveBayes(BaseEstimator):
             Performance under missclassification loss function
         """
         from ...metrics import misclassification_error
-        raise NotImplementedError()
+        return misclassification_error(y, self.predict(X))

@@ -124,7 +124,10 @@ def compare_gaussian_classifiers():
         i = 0
         for m in models.values():
             for j in range(m.classes_.size):
-                fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
+                if m is LDA:
+                    fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
+                elif m is GaussianNaiveBayes:
+                    fig.add_trace(get_ellipse(centers[i + j], m.vars_), row=1, col=(i % 2) + 1)
             i += m.classes_.size
 
         fig.show()
