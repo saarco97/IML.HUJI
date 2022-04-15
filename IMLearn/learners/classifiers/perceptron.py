@@ -77,13 +77,14 @@ class Perceptron(BaseEstimator):
         iteration = 1
         if self.include_intercept_:
             X = np.hstack((X, np.ones((X.shape[0], 1))))
-        w = np.zeros(X.shape[1])
-        while iteration <= self.max_iter_ and np.any(np.sign(X @ w) - y):
-            labeled_wrong_index = np.nonzero(np.sign(X @ w) - y)[0][0]
-            w += X[labeled_wrong_index] * y[labeled_wrong_index]
+        self.coefs_ = np.zeros(X.shape[1])
+        while iteration <= self.max_iter_ and np.any(np.sign(X @ self.coefs_) - y):
+            labeled_wrong_index = np.nonzero(np.sign(X @ self.coefs_) - y)[0][0]
+            self.coefs_ += X[labeled_wrong_index] * y[labeled_wrong_index]
+            if iteration == 1:
+                self.fitted_ = True
             self.callback_(self, X[labeled_wrong_index], y[labeled_wrong_index])
             iteration += 1
-        self.coefs_ = w
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """

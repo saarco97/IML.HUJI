@@ -45,14 +45,15 @@ def run_perceptron():
         losses = []
 
         def callback(perceptron, cur_sample, cur_response):
-            pass
-            # losses.append((perceptron.loss(X, y), cur_sample[-1]))
+            losses.append(perceptron.loss(X, y))
 
         Perceptron(callback=callback).fit(X, y)
 
+        indexed_losses = [(i+1, loss) for i, loss in enumerate(losses)]
+
         # Plot figure of loss as function of fitting iteration
-        fig = px.line(losses, x=1, y=0,
-                      labels={0: "algorithm's loss values", 1: 'fitting iteration'},
+        fig = px.line(indexed_losses, x=0, y=1,
+                      labels={'0': "algorithm's loss values", '1': 'fitting iteration'},
                       title=f"{n} dataset:\n Loss Values As A Function Of Training Iterations")
         fig.show()
 
@@ -129,5 +130,5 @@ def compare_gaussian_classifiers():
 
 if __name__ == '__main__':
     np.random.seed(0)
-    # run_perceptron()
-    compare_gaussian_classifiers()
+    run_perceptron()
+    # compare_gaussian_classifiers()
