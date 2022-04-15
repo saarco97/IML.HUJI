@@ -25,6 +25,7 @@ class LDA(BaseEstimator):
     self.pi_: np.ndarray of shape (n_classes)
         The estimated class probabilities. To be set in `GaussianNaiveBayes.fit`
     """
+
     def __init__(self):
         """
         Instantiate an LDA classifier
@@ -46,7 +47,12 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        self.classes_ = np.unique(y)
+        self.mu_ = np.array([X[y == i].mean(axis=0) for i in self.classes_]).T
+        self.cov_ = sum([(X[y == i] - self.mu_[:, i]).T @ (X[y == i] - self.mu_[:, i]) for i in self.classes_])
+        self.cov_ /= y.size
+        self._cov_inv = inv(self.cov_)
+        self.pi_ = np.array([X[y == i].mean() for i in self.classes_])
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -62,7 +68,8 @@ class LDA(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        intercept = -0.5 * np.diag(self.mu_.T @ self._cov_inv @ self.mu_) + np.log(self.pi_)
+        return np.argmax(X @ self._cov_inv @ self.mu_ + intercept, axis=1)
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -82,7 +89,9 @@ class LDA(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        raise NotImplementedError()
+        gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ self._cov_inv @ (X - self.mu_))) / (
+                2 * np.pi ** 0.5 * det(self.cov_))
+        return np.prod(gaussian_x * self.pi_)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -102,4 +111,4 @@ class LDA(BaseEstimator):
             Performance under missclassification loss function
         """
         from ...metrics import misclassification_error
-        raise NotImplementedError()
+        return misclassification_error(y, self.predict(X))
