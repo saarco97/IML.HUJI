@@ -45,8 +45,16 @@ class GaussianNaiveBayes(BaseEstimator):
         self.mu_ = np.array([X[y == i].mean(axis=0) for i in self.classes_]).T
 
         # TODO
-        self.vars_ = []
+        covs = []
+        n_features = X.shape[1]
+        for i in self.classes_:
+            new_cov = []
+            for j in range(n_features):
+                mat = X[y == i][:, j] - self.mu_[j][i]
+                new_cov.append((mat @ mat.T) / X[y == i].shape[0])
+            covs.append(new_cov)
 
+        self.vars_ = np.array(covs)
         self.pi_ = np.array([len(X[y == i]) for i in self.classes_]) / y.size
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -63,11 +71,15 @@ class GaussianNaiveBayes(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        #TODO
-        expression = np.log(self.pi_) - 0.5 * (self.mu_.T @ np.linalg.inv(self.vars_) @ self.mu_)
-        expression += X @  np.linalg.inv(self.vars_) @ self.mu_
-        expression += -0.5 * X @ np.linalg.inv(self.vars_) @ X.T
-        return np.argmax(expression, axis=1)
+        return np.argmax(self._log_likelihood(X), axis=1)
+
+    def _log_likelihood(self, X):
+        log_likelihood = []
+        for i in range(self.classes_.size):
+            temp = -1 * np.sum(np.log(2 * np.pi * self.vars_[i, :]))
+            temp -= 0.5 * np.sum(((X - self.mu_.T[i, :]) ** 2), 1)
+            log_likelihood.append(np.log(self.pi_[i]) + temp)
+        return np.array(log_likelihood).T
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -87,9 +99,11 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ np.linalg.inv(self.vars_) @ (X - self.mu_))) / (
-                2 * np.pi ** 0.5 * np.linalg.det(self.cov_))
-        return np.prod(gaussian_x * self.pi_)
+        # TODO
+        # gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ np.linalg.inv(self.vars_) @ (X - self.mu_))) / (
+        #         2 * np.pi ** 0.5 * np.linalg.det(self.cov_))
+        # return np.prod(gaussian_x * self.pi_)
+        return np.exp(self._log_likelihood(X), axis=1)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
