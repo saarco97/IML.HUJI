@@ -96,7 +96,6 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        # TODO....
         d = X.shape[1]
         likelihoods = []
         for c in range(self.classes_.size):
