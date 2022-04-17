@@ -36,7 +36,8 @@ def misclassification_error(y_true: np.ndarray, y_pred: np.ndarray, normalize: b
     -------
     Misclassification of given predictions
     """
-    # TODO - what is normalize
+    if not normalize:
+        return y_pred.size - np.count_nonzero((y_true - y_pred) == 0)
     return 1 - np.mean((y_true - y_pred) == 0)
 
 
