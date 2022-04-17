@@ -117,20 +117,24 @@ def compare_gaussian_classifiers():
 
         # Add `X` dots specifying fitted Gaussians' means
         centers = np.array([m.mu_[:, i] for m in models.values() for i in range(m.classes_.size)])
-        fig.add_scatter(x=centers[:, 0], y=centers[:, 1],  mode="markers", showlegend=False,
+        fig.add_scatter(x=centers[:, 0], y=centers[:, 1], mode="markers", showlegend=False,
                         marker=dict(color="black", symbol="x", size=12))
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        i = 0
-        for m in models.values():
-            for j in range(m.classes_.size):
-                if m is LDA:
-                    fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
-                elif m is GaussianNaiveBayes:
-                    fig.add_trace(get_ellipse(centers[i + j], m.vars_), row=1, col=(i % 2) + 1)
-            i += m.classes_.size
+        add_ellipses_to_figure(centers, fig, models)
 
         fig.show()
+
+
+def add_ellipses_to_figure(centers, fig, models):
+    i = 0
+    for m in models.values():
+        for j in range(m.classes_.size):
+            if type(m) is LDA:
+                fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
+            elif type(m) is GaussianNaiveBayes:
+                fig.add_trace(get_ellipse(centers[i + j], np.diag(m.vars_[j, :])), row=1, col=(i % 2) + 1)
+        i += m.classes_.size
 
 
 if __name__ == '__main__':

@@ -89,9 +89,13 @@ class LDA(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ self._cov_inv @ (X - self.mu_))) / (
-                2 * np.pi ** 0.5 * det(self.cov_))
-        return np.prod(gaussian_x * self.pi_)
+        # TODO....
+        likelihoods = []
+        for i in range(self.classes_.size):
+            x_mu = X - self.mu_[:, i]
+            gaussian_x = (np.exp(-0.5 * x_mu @ self._cov_inv @ x_mu.T)) / np.sqrt(2 * np.pi * det(self.cov_))
+            likelihoods.append(np.prod(gaussian_x, axis=1))
+        return np.array(likelihoods).T
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

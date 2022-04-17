@@ -44,17 +44,14 @@ class GaussianNaiveBayes(BaseEstimator):
         self.classes_ = np.unique(y)
         self.mu_ = np.array([X[y == i].mean(axis=0) for i in self.classes_]).T
 
-        # TODO
-        covs = []
+        self.vars_ = []
         n_features = X.shape[1]
         for i in self.classes_:
-            new_cov = []
-            for j in range(n_features):
-                mat = X[y == i][:, j] - self.mu_[j][i]
-                new_cov.append((mat @ mat.T) / X[y == i].shape[0])
-            covs.append(new_cov)
+            self.vars_.append(
+                [(X[y == i][:, j] - self.mu_[j][i]) @ (X[y == i][:, j] - self.mu_[j][i]).T / X[y == i].shape[0]
+                 for j in range(n_features)])
 
-        self.vars_ = np.array(covs)
+        self.vars_ = np.array(self.vars_)
         self.pi_ = np.array([len(X[y == i]) for i in self.classes_]) / y.size
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -71,15 +68,15 @@ class GaussianNaiveBayes(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        return np.argmax(self._log_likelihood(X), axis=1)
+        log_likelihood = np.array([self._log_likelihood_for_class_i(X, i) for i in range(self.classes_.size)]).T
+        return np.argmax(log_likelihood, axis=1)
 
-    def _log_likelihood(self, X):
-        log_likelihood = []
-        for i in range(self.classes_.size):
-            temp = -1 * np.sum(np.log(2 * np.pi * self.vars_[i, :]))
-            temp -= 0.5 * np.sum(((X - self.mu_.T[i, :]) ** 2), 1)
-            log_likelihood.append(np.log(self.pi_[i]) + temp)
-        return np.array(log_likelihood).T
+    def _log_likelihood_for_class_i(self, X, i):
+        mu_k = self.mu_.T[i, :]
+        cov_k = np.diag(self.vars_[i])
+        intercept = -0.5 * mu_k @ cov_k @ mu_k + np.log(self.pi_[i])
+        elem = X @ cov_k @ mu_k + intercept
+        return elem
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -99,11 +96,15 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        # TODO
-        # gaussian_x = (np.exp(-0.5 * (X - self.mu_).T @ np.linalg.inv(self.vars_) @ (X - self.mu_))) / (
-        #         2 * np.pi ** 0.5 * np.linalg.det(self.cov_))
-        # return np.prod(gaussian_x * self.pi_)
-        return np.exp(self._log_likelihood(X), axis=1)
+        # TODO....
+        d = X.shape[1]
+        likelihoods = []
+        for c in range(self.classes_.size):
+            x_mu = X - self.mu_.T[c, :]
+            exp = np.exp(-0.5 * x_mu @ self.vars_[c, :] @ x_mu)
+            Z = np.sqrt((2 * np.pi) ** d * np.prod(self.vars_[c, :]))
+            likelihoods.append(self.pi_[c] * exp / Z)
+        return np.array(likelihoods).T
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
