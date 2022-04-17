@@ -133,7 +133,7 @@ def add_ellipses_to_figure(centers, fig, models):
             if type(m) is LDA:
                 fig.add_trace(get_ellipse(centers[i + j], m.cov_), row=1, col=(i % 2) + 1)
             elif type(m) is GaussianNaiveBayes:
-                fig.add_trace(get_ellipse(centers[i + j], np.diag(m.vars_[j, :])), row=1, col=(i % 2) + 1)
+                fig.add_trace(get_ellipse(centers[i + j], m.vars_[j]), row=1, col=(i % 2) + 1)
         i += m.classes_.size
 
 

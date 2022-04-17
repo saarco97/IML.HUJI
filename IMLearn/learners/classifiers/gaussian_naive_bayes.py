@@ -1,6 +1,7 @@
 from typing import NoReturn
 from ...base import BaseEstimator
 import numpy as np
+from numpy.linalg import det, inv
 
 
 class GaussianNaiveBayes(BaseEstimator):
@@ -43,16 +44,12 @@ class GaussianNaiveBayes(BaseEstimator):
         """
         self.classes_ = np.unique(y)
         self.mu_ = np.array([X[y == i].mean(axis=0) for i in self.classes_]).T
-
-        self.vars_ = []
-        n_features = X.shape[1]
-        for i in self.classes_:
-            self.vars_.append(
-                [(X[y == i][:, j] - self.mu_[j][i]) @ (X[y == i][:, j] - self.mu_[j][i]).T / X[y == i].shape[0]
-                 for j in range(n_features)])
-
-        self.vars_ = np.array(self.vars_)
+        self.vars_ = np.array([self._cov_for_class(X, y, i) for i in self.classes_])
         self.pi_ = np.array([len(X[y == i]) for i in self.classes_]) / y.size
+
+    def _cov_for_class(self, X, y, i):
+        X_mu = X[y == i] - self.mu_[:, i]
+        return np.diag(np.einsum('ij,ji->i', X_mu.T, X_mu) / X_mu.shape[0])
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -68,15 +65,7 @@ class GaussianNaiveBayes(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        log_likelihood = np.array([self._log_likelihood_for_class_i(X, i) for i in range(self.classes_.size)]).T
-        return np.argmax(log_likelihood, axis=1)
-
-    def _log_likelihood_for_class_i(self, X, i):
-        mu_k = self.mu_.T[i, :]
-        cov_k = np.diag(self.vars_[i])
-        intercept = -0.5 * mu_k @ cov_k @ mu_k + np.log(self.pi_[i])
-        elem = X @ cov_k @ mu_k + intercept
-        return elem
+        return np.argmax(self.likelihood(X), axis=1)
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -96,14 +85,14 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        d = X.shape[1]
-        likelihoods = []
-        for c in range(self.classes_.size):
-            x_mu = X - self.mu_.T[c, :]
-            exp = np.exp(-0.5 * x_mu @ self.vars_[c, :] @ x_mu)
-            Z = np.sqrt((2 * np.pi) ** d * np.prod(self.vars_[c, :]))
-            likelihoods.append(self.pi_[c] * exp / Z)
-        return np.array(likelihoods).T
+        return np.array([self._calc_pdf(X - self.mu_.T[c, :], self.vars_[c, :], self.pi_[c]) for c in
+                         range(self.classes_.size)]).T
+
+    @staticmethod
+    def _calc_pdf(X_minus_mu, cov, pi):
+        exp_pi = np.exp(-.5 * np.einsum('ij,ji->i', X_minus_mu @ inv(cov), X_minus_mu.T)) * pi
+        Z = np.sqrt((2 * np.pi) ** X_minus_mu.shape[1] * det(cov))
+        return exp_pi / Z
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
