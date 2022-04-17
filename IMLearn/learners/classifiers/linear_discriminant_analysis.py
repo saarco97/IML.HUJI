@@ -68,7 +68,6 @@ class LDA(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        return np.argmax(self.likelihood(X), axis=1)
         intercept = -0.5 * np.diag(self.mu_.T @ self._cov_inv @ self.mu_) + np.log(self.pi_)
         return np.argmax(X @ self._cov_inv @ self.mu_ + intercept, axis=1)
 
