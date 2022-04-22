@@ -104,9 +104,10 @@ def compare_gaussian_classifiers():
         symbols = np.array(["circle", "triangle-up", "square"])
         colors = np.array(["cyan", "crimson", "chartreuse"])
         for i, m in enumerate(models.values()):
+            predict = m.predict(X)
             fig.add_traces([decision_surface(m.predict, limits[0], limits[1], showscale=False),
                             go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers", showlegend=False,
-                                       marker=dict(color=colors[y], symbol=symbols[y],
+                                       marker=dict(color=colors[predict], symbol=symbols[y],
                                                    colorscale=[custom[0], custom[-1]],
                                                    line=dict(color="black", width=1)))],
                            rows=1, cols=(i % 2) + 1)
