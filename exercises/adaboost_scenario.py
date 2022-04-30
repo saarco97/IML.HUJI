@@ -42,9 +42,9 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     (train_X, train_y), (test_X, test_y) = generate_data(train_size, noise), generate_data(test_size, noise)
 
     # Question 1: Train- and test errors of AdaBoost in noiseless case
-    iterations = np.arange(1, n_learners + 1)
-    adaBoost = AdaBoost(DecisionStump, len(iterations))
+    adaBoost = AdaBoost(DecisionStump, n_learners)
     adaBoost.fit(train_X, train_y)
+    iterations = np.arange(1, n_learners)
     training_loss, test_loss = [], []
     for t in iterations:
         training_loss.append(adaBoost.partial_loss(train_X, train_y, t))
@@ -84,7 +84,7 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     for t in iterations:
         test_error.append(adaBoost.partial_loss(test_X, test_y, t))
     t_min = np.argmin(test_error) + 1
-    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"num iterations = {t}" for t in T],
+    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"num iterations = {t_min}" for t in T],
                         horizontal_spacing=0.01, vertical_spacing=.03)
     model = AdaBoost(DecisionStump, t_min)
     model.fit(train_X, train_y)
@@ -97,6 +97,8 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
 
     # Question 4: Decision surface with weighted samples
     weights = adaBoost.D_ / np.max(adaBoost.D_) * 5
+    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"num iterations = {n_learners}"],
+                        horizontal_spacing=0.01, vertical_spacing=.03)
     fig.add_traces(
         [decision_surface(adaBoost.predict, lims[0], lims[1], showscale=False),
          go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,

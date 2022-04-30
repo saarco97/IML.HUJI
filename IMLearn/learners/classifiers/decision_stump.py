@@ -102,7 +102,7 @@ class DecisionStump(BaseEstimator):
         """
         X, y = values[np.argsort(values)], labels[np.argsort(values)]
         possible_thr = np.concatenate([[-np.inf], (X[1:] + X[:-1]) / 2, [np.inf]])
-        min_thr_err = np.sum([y == sign])
+        min_thr_err = np.sum(np.abs(y[np.sign(y) == sign]))
         losses = np.append(min_thr_err, min_thr_err - np.cumsum(y * sign))
         min_loss_idx = np.argmin(losses)
         return possible_thr[min_loss_idx], losses[min_loss_idx]
