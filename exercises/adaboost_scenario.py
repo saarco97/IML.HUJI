@@ -101,8 +101,8 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
                         horizontal_spacing=0.01, vertical_spacing=.03)
     fig.add_traces(
         [decision_surface(adaBoost.predict, lims[0], lims[1], showscale=False),
-         go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
-                    marker=dict(color=test_y, colorscale=[custom[0], custom[-1]], size=weights,
+         go.Scatter(x=train_X[:, 0], y=train_X[:, 1], mode="markers", showlegend=False,
+                    marker=dict(color=train_y, colorscale=[custom[0], custom[-1]], size=weights,
                                 line=dict(color="black", width=1)))])
     fig.show()
 
@@ -110,4 +110,4 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
 if __name__ == '__main__':
     np.random.seed(0)
     fit_and_evaluate_adaboost(noise=0)
-    # fit_and_evaluate_adaboost(noise=0.4)
+    fit_and_evaluate_adaboost(noise=0.4)
