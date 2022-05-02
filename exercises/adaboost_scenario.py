@@ -70,11 +70,6 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
                         marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
                                     line=dict(color="black", width=1)))],
             rows=(i // 2) + 1, cols=(i % 2) + 1)
-        # fig.add_traces([decision_surface(adaBoost.fit(train_X, train_y).partial_predict, lims[0], lims[1], showscale=False),
-        #                 go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
-        #                            marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
-        #                                        line=dict(color="black", width=1)))],
-        #                rows=(i // 3) + 1, cols=(i % 2) + 1)
     fig.update_layout(title=rf"$\textbf{{Decision Boundaries Of Models}}$", margin=dict(t=100)) \
         .update_xaxes(visible=False).update_yaxes(visible=False)
     fig.show()
@@ -84,26 +79,26 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     for t in iterations:
         test_error.append(adaBoost.partial_loss(test_X, test_y, t))
     t_min = np.argmin(test_error) + 1
-    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"num iterations = {t_min}" for t in T],
-                        horizontal_spacing=0.01, vertical_spacing=.03)
+    acc = 1 - adaBoost.partial_loss(test_X, test_y, t_min)
+    title = f"ensemble_size = {n_learners}, accuracy = {acc}"
     model = AdaBoost(DecisionStump, t_min)
     model.fit(train_X, train_y)
-    fig.add_traces(
-        [decision_surface(adaBoost.predict, lims[0], lims[1], showscale=False),
-         go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
-                    marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
-                                line=dict(color="black", width=1)))])
-    fig.show()
+    plot_decision_boundaries(model, lims, test_X, test_y, None, title)
 
     # Question 4: Decision surface with weighted samples
     weights = adaBoost.D_ / np.max(adaBoost.D_) * 5
-    fig = make_subplots(rows=1, cols=1, subplot_titles=[f"num iterations = {n_learners}"],
+    title = f"num iterations = {n_learners}"
+    plot_decision_boundaries(adaBoost, lims, train_X, train_y, weights, title)
+
+
+def plot_decision_boundaries(adaBoost, lims, X, y, weights, title):
+    fig = make_subplots(rows=1, cols=1, subplot_titles=[title],
                         horizontal_spacing=0.01, vertical_spacing=.03)
     fig.add_traces(
         [decision_surface(adaBoost.predict, lims[0], lims[1], showscale=False),
-         go.Scatter(x=train_X[:, 0], y=train_X[:, 1], mode="markers", showlegend=False,
-                    marker=dict(color=train_y, colorscale=[custom[0], custom[-1]], size=weights,
-                                line=dict(color="black", width=1)))])
+         go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers", showlegend=False,
+                    marker=dict(color=y, colorscale=[custom[0], custom[-1]],
+                                size=weights, line=dict(color="black", width=1)))])
     fig.show()
 
 

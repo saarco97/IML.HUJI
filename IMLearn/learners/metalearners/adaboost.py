@@ -54,10 +54,10 @@ class AdaBoost(BaseEstimator):
         for t in range(self.iterations_):
             self.models_.append(self.wl_())  # == h_t
             self.models_[t].fit(X, y * self.D_)
-            y_hat = self.models_[t].predict(X)
-            epsilon_t = np.sum((np.abs(y_hat - y) / 2) * self.D_)
+            predict_of_model_t = self.models_[t].predict(X)
+            epsilon_t = np.sum((np.abs(predict_of_model_t - y) / 2) * self.D_)
             self.weights_[t] = 0.5 * np.log(1 / epsilon_t - 1)
-            self.D_ *= np.exp((-1) * y * self.weights_[t] * y_hat)
+            self.D_ *= np.exp(-y * self.weights_[t] * predict_of_model_t)
             self.D_ /= np.sum(self.D_)
 
     def _predict(self, X):
@@ -137,5 +137,4 @@ class AdaBoost(BaseEstimator):
         loss : float
             Performance under missclassification loss function
         """
-        y_hat = self.partial_predict(X, T)
-        return np.sum(abs(y - y_hat) / 2) / y.size
+        return sum(abs(y - self.partial_predict(X, T)) / 2) / y.size
