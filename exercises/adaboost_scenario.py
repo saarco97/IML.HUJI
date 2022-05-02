@@ -61,15 +61,11 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     fig = make_subplots(rows=2, cols=2, subplot_titles=[f"num iterations = {t}" for t in T],
                         horizontal_spacing=0.01, vertical_spacing=.03)
     for i, t in enumerate(T):
-        # TODO - I need to put here partial predict with given t but..
-        model = AdaBoost(DecisionStump, t)
-        model.fit(train_X, train_y)
-        fig.add_traces(
-            [decision_surface(model.predict, lims[0], lims[1], showscale=False),
-             go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
-                        marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
-                                    line=dict(color="black", width=1)))],
-            rows=(i // 2) + 1, cols=(i % 2) + 1)
+        fig.add_traces([decision_surface(lambda X: adaBoost.partial_predict(X, t), lims[0], lims[1], showscale=False),
+                        go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
+                                   marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
+                                               line=dict(color="black", width=1)))],
+                       rows=(i // 2) + 1, cols=(i % 2) + 1)
     fig.update_layout(title=rf"$\textbf{{Decision Boundaries Of Models}}$", margin=dict(t=100)) \
         .update_xaxes(visible=False).update_yaxes(visible=False)
     fig.show()
