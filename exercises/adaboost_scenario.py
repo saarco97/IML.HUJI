@@ -61,7 +61,8 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
     fig = make_subplots(rows=2, cols=2, subplot_titles=[f"num iterations = {t}" for t in T],
                         horizontal_spacing=0.01, vertical_spacing=.03)
     for i, t in enumerate(T):
-        fig.add_traces([decision_surface(lambda X: adaBoost.partial_predict(X, t), lims[0], lims[1], showscale=False),
+        fig.add_traces([decision_surface(lambda X: adaBoost.partial_predict(X, t),
+                                         lims[0], lims[1], showscale=False),
                         go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers", showlegend=False,
                                    marker=dict(color=test_y, colorscale=[custom[0], custom[-1]],
                                                line=dict(color="black", width=1)))],
@@ -76,22 +77,20 @@ def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=
         test_error.append(adaBoost.partial_loss(test_X, test_y, t))
     t_min = np.argmin(test_error) + 1
     acc = 1 - adaBoost.partial_loss(test_X, test_y, t_min)
-    title = f"ensemble_size = {n_learners}, accuracy = {acc}"
-    model = AdaBoost(DecisionStump, t_min)
-    model.fit(train_X, train_y)
-    plot_decision_boundaries(model, lims, test_X, test_y, None, title)
+    title = f"ensemble_size = {t_min}, accuracy = {acc}"
+    plot_decision_boundaries(lambda X: adaBoost.partial_predict(X, t), lims, test_X, test_y, None, title)
 
     # Question 4: Decision surface with weighted samples
     weights = adaBoost.D_ / np.max(adaBoost.D_) * 5
     title = f"num iterations = {n_learners}"
-    plot_decision_boundaries(adaBoost, lims, train_X, train_y, weights, title)
+    plot_decision_boundaries(adaBoost.predict, lims, train_X, train_y, weights, title)
 
 
-def plot_decision_boundaries(adaBoost, lims, X, y, weights, title):
+def plot_decision_boundaries(adaBoost_predict, lims, X, y, weights, title):
     fig = make_subplots(rows=1, cols=1, subplot_titles=[title],
                         horizontal_spacing=0.01, vertical_spacing=.03)
     fig.add_traces(
-        [decision_surface(adaBoost.predict, lims[0], lims[1], showscale=False),
+        [decision_surface(adaBoost_predict, lims[0], lims[1], showscale=False),
          go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers", showlegend=False,
                     marker=dict(color=y, colorscale=[custom[0], custom[-1]],
                                 size=weights, line=dict(color="black", width=1)))])
