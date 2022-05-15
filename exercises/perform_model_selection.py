@@ -27,13 +27,39 @@ def select_polynomial_degree(n_samples: int = 100, noise: float = 5):
     """
     # Question 1 - Generate dataset for model f(x)=(x+3)(x+2)(x+1)(x-1)(x-2) + eps for eps Gaussian noise
     # and split into training- and testing portions
-    raise NotImplementedError()
+    epsilon = np.random.normal(0, noise, n_samples)
+    f = lambda x: (x + 3) * (x + 2) * (x + 1) * (x - 1) * (x - 2)
+    X = np.linspace(-1.2, 2, n_samples)
+    y_ = f(X)
+    y = y_ + epsilon
+
+    train_X, train_y, test_X, test_y = split_train_test(pd.DataFrame(X), pd.Series(y), 2.0 / 3)
+    train_X = train_X[0].to_numpy()
+    test_X = test_X[0].to_numpy()
+    train_y = train_y.to_numpy()
+    test_y = test_y.to_numpy()
+    fig = make_subplots(rows=1, cols=1).add_traces([
+        go.Scatter(x=X, y=y_, mode='lines', name='true (noiseless) model'),
+        go.Scatter(x=train_X, y=train_y, mode='markers', name='train set'),
+        go.Scatter(x=test_X, y=test_y, mode='markers', name='test set')
+    ]).update_layout(title_text='True Model Vs. train & test sets', height=300)
+    fig.show()
 
     # Question 2 - Perform CV for polynomial fitting with degrees 0,1,...,10
-    raise NotImplementedError()
+    degrees = [i for i in range(0, 11)]
+    errors = np.array([cross_validate(PolynomialFitting(d), train_X, train_y, mean_square_error) for d in degrees])
+    fig = make_subplots(rows=1, cols=1).add_traces([
+        go.Scatter(x=degrees, y=errors[:, 0], mode='lines+markers', name='avg training error'),
+        go.Scatter(x=degrees, y=errors[:, 1], mode='lines+markers', name='avg validation error')
+    ]).update_layout(title_text='Error Values as a function of Polynomial Degree', height=300)
+    fig.show()
 
     # Question 3 - Using best value of k, fit a k-degree polynomial model and report test error
-    raise NotImplementedError()
+    k_star = np.argmin(errors[:, 1])
+    model = PolynomialFitting(k_star)
+    model.fit(train_X, train_y)
+    test_err = mean_square_error(test_y, model.predict(test_X))
+    print(f"k_Star={k_star}, test_Error={round(test_err, 2)}")
 
 
 def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 500):
@@ -61,4 +87,7 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
 
 if __name__ == '__main__':
     np.random.seed(0)
+    select_polynomial_degree()  # q.1-3 (part A)
+    select_polynomial_degree(noise=0)  # q.4 (part A)
+    select_polynomial_degree(n_samples=1500, noise=10)  # q.5 (part A)
     raise NotImplementedError()
