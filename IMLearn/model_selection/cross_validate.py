@@ -38,12 +38,13 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
         Average validation score over folds
     """
     errors = []
+    groups = np.remainder(np.arange(y.size), cv)
     for i in range(cv):
-        X_hat = np.concatenate((X[:i], X[i+1:]))
-        y_hat = np.concatenate((y[:i], y[i+1:]))
+        X_hat = X[groups != i]
+        y_hat = y[groups != i]
         h_i = estimator.fit(X_hat, y_hat)
         train_score = scoring(y_hat, h_i.predict(X_hat))
-        validation_score = scoring(y[i], h_i.predict(np.array([X[i]])))
+        validation_score = scoring(y[groups == i], h_i.predict(X[groups == i]))
         errors.append((train_score, validation_score))
     return tuple(np.mean(np.array(errors), axis=0))
 
