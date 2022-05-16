@@ -81,7 +81,7 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
     test_x, test_y = X[n_samples:, :], y[n_samples:]
 
     # Question 7 - Perform CV for different values of the regularization parameter for Ridge and Lasso regressions
-    lambdas = np.linspace(0.0007, 2.36, num=n_evaluations)
+    lambdas = np.linspace(0.00001, 2.35, num=n_evaluations)
     errors_ridge = np.array([cross_validate(RidgeRegression(lam), train_x, train_y, mean_square_error) for lam in lambdas])
     errors_lasso = np.array([cross_validate(Lasso(lam), train_x, train_y, mean_square_error) for lam in lambdas])
     fig = make_subplots(rows=1, cols=1).add_traces([
@@ -95,25 +95,24 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
     # Question 8 - Compare best Ridge model, best Lasso model and Least Squares model
     best_lambda_ridge = lambdas[np.argmin(errors_ridge[:, 1])]  # best validation errors
     best_lambda_lasso = lambdas[np.argmin(errors_lasso[:, 1])]  # best validation errors
-    print('Best regularization parameter for Ridge is', best_lambda_ridge)
-    print('Best regularization parameter for Lasso is', best_lambda_lasso)
+    print(f'Best regularization parameter - Ridge:\t{best_lambda_ridge}')
+    print(f'Best regularization parameter - Lasso:\t{best_lambda_lasso}')
 
     ridge_model = RidgeRegression(best_lambda_ridge).fit(train_x, train_y)
-    lasso_model = Lasso(best_lambda_ridge)
-    lasso_model.fit(train_x, train_y)
+    lasso_model = Lasso(best_lambda_ridge).fit(train_x, train_y)
     linear_reg_model = LinearRegression().fit(train_x, train_y)
-    print('Test Error for Ridge:\t\t', ridge_model.loss(test_x, test_y))
-    print('Test Error for Lasso:\t\t', mean_square_error(test_y, lasso_model.predict(test_x)))
-    print('Test Error for Linear Regression:\t', linear_reg_model.loss(test_x, test_y))
+    print(f'Test Error - Ridge:\t\t\t\t{ridge_model.loss(test_x, test_y)}')
+    print(f'Test Error - Lasso:\t\t\t\t{mean_square_error(test_y, lasso_model.predict(test_x))}')
+    print(f'Test Error - LinearRegression:\t{linear_reg_model.loss(test_x, test_y)}')
 
 
 if __name__ == '__main__':
     np.random.seed(0)
 
     # Part 2.1 -- Cross Validation For Selecting Polynomial Degree
-    # select_polynomial_degree()  # q.1-3
-    # select_polynomial_degree(noise=0)  # q.4
-    # select_polynomial_degree(n_samples=1500, noise=10)  # q.5
+    select_polynomial_degree()  # q.1-3
+    select_polynomial_degree(noise=0)  # q.4
+    select_polynomial_degree(n_samples=1500, noise=10)  # q.5
 
     # Part 2.2 -- Choosing Regularization Parameters Using Cross Validation
     select_regularization_parameter()
