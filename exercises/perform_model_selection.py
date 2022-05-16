@@ -76,10 +76,21 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
         Number of regularization parameter values to evaluate for each of the algorithms
     """
     # Question 6 - Load diabetes dataset and split into training and testing portions
-    raise NotImplementedError()
+    X, y = datasets.load_diabetes(return_X_y=True)
+    train_x, train_y = X[:n_samples, :], y[:n_samples]
+    test_x, test_y = X[n_samples:, :], y[n_samples:]
 
     # Question 7 - Perform CV for different values of the regularization parameter for Ridge and Lasso regressions
-    raise NotImplementedError()
+    lambdas = np.linspace(0.0007, 2.36, num=n_evaluations)
+    errors_ridge = np.array([cross_validate(RidgeRegression(lam), train_x, train_y, mean_square_error) for lam in lambdas])
+    errors_lasso = np.array([cross_validate(Lasso(lam), train_x, train_y, mean_square_error) for lam in lambdas])
+    fig = make_subplots(rows=1, cols=1).add_traces([
+        go.Scatter(x=lambdas, y=errors_ridge[:, 0], mode='lines', name='training (Ridge)'),
+        go.Scatter(x=lambdas, y=errors_ridge[:, 1], mode='lines', name='validation (Ridge)'),
+        go.Scatter(x=lambdas, y=errors_lasso[:, 0], mode='lines', name='training (Lasso)'),
+        go.Scatter(x=lambdas, y=errors_lasso[:, 1], mode='lines', name='validation (Lasso)')
+    ]).update_layout(title_text='Compare Loss of Rigde & Lasso', height=300)
+    fig.show()
 
     # Question 8 - Compare best Ridge model, best Lasso model and Least Squares model
     raise NotImplementedError()
@@ -87,7 +98,11 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
 
 if __name__ == '__main__':
     np.random.seed(0)
-    select_polynomial_degree()  # q.1-3 (part A)
-    select_polynomial_degree(noise=0)  # q.4 (part A)
-    select_polynomial_degree(n_samples=1500, noise=10)  # q.5 (part A)
-    raise NotImplementedError()
+
+    # Part 2.1 -- Cross Validation For Selecting Polynomial Degree
+    # select_polynomial_degree()  # q.1-3
+    # select_polynomial_degree(noise=0)  # q.4
+    # select_polynomial_degree(n_samples=1500, noise=10)  # q.5
+
+    # Part 2.2 -- Choosing Regularization Parameters Using Cross Validation
+    select_regularization_parameter()
