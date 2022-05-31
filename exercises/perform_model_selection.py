@@ -58,8 +58,8 @@ def select_polynomial_degree(n_samples: int = 100, noise: float = 5):
     k_star = np.argmin(errors[:, 1])
     model = PolynomialFitting(k_star)
     model.fit(train_X, train_y)
-    test_err = mean_square_error(test_y, model.predict(test_X))
-    print(f"k_Star={k_star}, test_Error={round(test_err, 2)}")
+    test_err = model.loss(test_X, test_y)
+    print(f"k_Star={k_star}, test_Error={np.round(test_err, 2)}")
 
 
 def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 500):
