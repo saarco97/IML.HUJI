@@ -90,16 +90,16 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
     modules = {"L1": L1, "L2": L2}
     for module_name, module in modules.items():
         fig = make_subplots(rows=2, cols=2, x_title="iteration", y_title="norm",
-                            subplot_titles=[f"eta={e}" for e in etas],
+                            subplot_titles=[f"$\eta={e}$" for e in etas],
                             horizontal_spacing=.08, vertical_spacing=.15)
         for i, eta in enumerate(etas):
             f = module(np.copy(init))
             callback, values, weights = get_gd_state_recorder_callback()
             GD = GradientDescent(learning_rate=FixedLR(eta), callback=callback)
             GD.fit(f=f, X=None, y=None)
-            print(f"{module_name} norm, eta={eta}, lowest_loss={np.min(values)}")
+            print(f"{module_name} norm, eta={eta}, lowest_loss={np.round(np.min(values), 9)}")
             plt = plot_descent_path(module, np.vstack(weights), title=f"{module_name} with step size of {eta}")
-            plt.show()
+            # plt.show()
             fig.add_traces([go.Scatter(x=np.arange(len(values)), y=np.concatenate(values))],
                            rows=i // 2 + 1, cols=(i % 2) + 1)
         fig.update_layout(title_text=f"{module_name} norm")
@@ -110,13 +110,29 @@ def compare_exponential_decay_rates(init: np.ndarray = np.array([np.sqrt(2), np.
                                     eta: float = .1,
                                     gammas: Tuple[float] = (.9, .95, .99, 1)):
     # Optimize the L1 objective using different decay-rate values of the exponentially decaying learning rate
-    raise NotImplementedError()
+    fig = make_subplots(rows=2, cols=2, x_title="iteration", y_title="norm",
+                        subplot_titles=[f"gamma={g}" for g in gammas],
+                        horizontal_spacing=.08, vertical_spacing=.15)
+    for i, gamma in enumerate(gammas):
+        f = L1(np.copy(init))
+        callback, values, weights = get_gd_state_recorder_callback()
+        GD = GradientDescent(learning_rate=ExponentialLR(eta, gamma), callback=callback)
+        GD.fit(f=f, X=None, y=None)
+        print(f"gamma={gamma}, lowest_loss={np.round(np.min(values), 9)}")
+        fig.add_traces([go.Scatter(x=np.arange(len(values)), y=np.concatenate(values))],
+                       rows=i // 2 + 1, cols=(i % 2) + 1)
 
     # Plot algorithm's convergence for the different values of gamma
-    raise NotImplementedError()
+    # fig.show()
 
     # Plot descent path for gamma=0.95
-    raise NotImplementedError()
+    modules = {"L1": L1, "L2": L2}
+    for module_name, module in modules.items():
+        callback, values, weights = get_gd_state_recorder_callback()
+        GD = GradientDescent(learning_rate=ExponentialLR(eta, 0.95), callback=callback)
+        GD.fit(module(np.copy(init)), None, None)
+        fig = plot_descent_path(module, np.vstack(weights), title=f"${module_name}\ with\ \eta={eta}\ and\ \gamma={0.95}$")
+        fig.show()
 
 
 def load_data(path: str = "../datasets/SAheart.data", train_portion: float = .8) -> \
@@ -165,6 +181,6 @@ def fit_logistic_regression():
 
 if __name__ == '__main__':
     np.random.seed(0)
-    compare_fixed_learning_rates()
+    # compare_fixed_learning_rates()
     compare_exponential_decay_rates()
     fit_logistic_regression()
