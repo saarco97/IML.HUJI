@@ -8,6 +8,7 @@ from IMLearn.desent_methods.modules import L1, L2
 from IMLearn.learners.classifiers.logistic_regression import LogisticRegression
 from IMLearn.utils import split_train_test
 
+from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
@@ -46,12 +47,14 @@ def plot_descent_path(module: Type[BaseModule],
     fig = plot_descent_path(IMLearn.desent_methods.modules.L1, np.ndarray([[1,1],[0,0]]))
     fig.show()
     """
+
     def predict_(w):
         return np.array([module(weights=wi).compute_output() for wi in w])
 
     from utils import decision_surface
     return go.Figure([decision_surface(predict_, xrange=xrange, yrange=yrange, density=70, showscale=False),
-                      go.Scatter(x=descent_path[:, 0], y=descent_path[:, 1], mode="markers+lines", marker_color="black")],
+                      go.Scatter(x=descent_path[:, 0], y=descent_path[:, 1], mode="markers+lines",
+                                 marker_color="black")],
                      layout=go.Layout(xaxis=dict(range=xrange),
                                       yaxis=dict(range=yrange),
                                       title=f"GD Descent Path {title}"))
@@ -73,12 +76,34 @@ def get_gd_state_recorder_callback() -> Tuple[Callable[[], None], List[np.ndarra
     weights: List[np.ndarray]
         Recorded parameters
     """
-    raise NotImplementedError()
+    values, all_weights = [], []
+
+    def callback(solver, weights, val, grad, t, eta, delta):
+        values.append(val)
+        all_weights.append(weights)
+
+    return callback, values, all_weights
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
-    raise NotImplementedError()
+    modules = {"L1": L1, "L2": L2}
+    for module_name, module in modules.items():
+        fig = make_subplots(rows=2, cols=2, x_title="iteration", y_title="norm",
+                            subplot_titles=[f"eta={e}" for e in etas],
+                            horizontal_spacing=.08, vertical_spacing=.15)
+        for i, eta in enumerate(etas):
+            f = module(np.copy(init))
+            callback, values, weights = get_gd_state_recorder_callback()
+            GD = GradientDescent(learning_rate=FixedLR(eta), callback=callback)
+            GD.fit(f=f, X=None, y=None)
+            print(f"{module_name} norm, eta={eta}, lowest_loss={np.min(values)}")
+            plt = plot_descent_path(module, np.vstack(weights), title=f"{module_name} with step size of {eta}")
+            plt.show()
+            fig.add_traces([go.Scatter(x=np.arange(len(values)), y=np.concatenate(values))],
+                           rows=i // 2 + 1, cols=(i % 2) + 1)
+        fig.update_layout(title_text=f"{module_name} norm")
+        fig.show()
 
 
 def compare_exponential_decay_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),

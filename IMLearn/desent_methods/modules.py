@@ -50,7 +50,7 @@ class L2(BaseModule):
             L2 derivative with respect to self.weights at point self.weights
         """
         return self.weights_
-        # return np.gradient(self.weights)
+        # return 2 * self.weights_
 
 
 class L1(BaseModule):

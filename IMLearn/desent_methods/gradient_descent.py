@@ -39,6 +39,7 @@ class GradientDescent:
         Callable function receives as input any argument relevant for the current GD iteration. Arguments
         are specified in the `GradientDescent.fit` function
     """
+
     def __init__(self,
                  learning_rate: BaseLR = FixedLR(1e-3),
                  tol: float = 1e-5,
@@ -119,24 +120,28 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        t, delta = 0, np.inf
-        cur_X = X
-        X_sum, X_min_grad, min_grad, grad = 0, 0, np.inf, np.inf
+        t, delta = 1, np.inf
+        cur_X = f
+        X_sum, X_min_grad, grad, min_val = cur_X.weights_, 0, np.inf, np.inf
+        weights_t_1 = cur_X.weights_
+        eta = self.learning_rate_.lr_step()
+        self.callback_(self, np.copy(weights_t_1), cur_X.compute_output(), grad, t, eta, delta)
         while t < self.max_iter_ and delta > self.tol_:
-            prev_X = cur_X
-            grad = f.compute_jacobian()
-            eta = self.learning_rate_.lr_step(t)
-            cur_X = cur_X - eta * grad
-            X_sum += cur_X
-            if min_grad < grad:
-                min_grad = grad
+            eta = self.learning_rate_.lr_step()
+            grad = cur_X.compute_jacobian()
+            weights_t = cur_X.weights - eta * grad
+            # eta = self.learning_rate_.lr_step(t)
+            delta = np.linalg.norm(weights_t_1 - weights_t)
+            weights_t_1 = weights_t
+            cur_X.weights = weights_t
+            X_sum += cur_X.weights
+            if min_val > cur_X.compute_output():
+                min_val = cur_X.compute_output()
                 X_min_grad = cur_X
-            delta = np.linalg.norm(cur_X - prev_X)
             t += 1
-            weights_t = f.weights_
-            self.callback_(self, weights_t, f.compute_output(), grad, t, eta, delta)
+            self.callback_(self, weights_t, cur_X.compute_output(), grad, t, eta, delta)
         if self.out_type_ == "last":
-            return cur_X
+            return cur_X.weights
         elif self.out_type_ == "best":
-            return X_min_grad
+            return X_min_grad.weights
         return X_sum / t  # average
