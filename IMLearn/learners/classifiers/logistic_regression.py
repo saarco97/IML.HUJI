@@ -48,7 +48,8 @@ class LogisticRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        f = RegularizedModule(LogisticModule(), LogisticModule(), self.lam_, self.coefs_, self.include_intercept_)
+        self.solver_.fit(f, X, y)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
