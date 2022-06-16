@@ -121,22 +121,22 @@ class GradientDescent:
         """
         t, delta = 0, np.inf
         cur_X = X
-        grads = []
-        Xs = []
+        X_sum, X_min_grad, min_grad, grad = 0, 0, np.inf, np.inf
         while t < self.max_iter_ and delta > self.tol_:
             prev_X = cur_X
             grad = f.compute_jacobian()
-            grads.append(grad)
-            eta_t_1 = self.learning_rate_.lr_step(t)
-            cur_X = cur_X - eta_t_1 * grad
-            Xs.append(cur_X)
+            eta = self.learning_rate_.lr_step(t)
+            cur_X = cur_X - eta * grad
+            X_sum += cur_X
+            if min_grad < grad:
+                min_grad = grad
+                X_min_grad = cur_X
             delta = np.linalg.norm(cur_X - prev_X)
             t += 1
-            val = f.compute_output(cur_X, y)
             weights_t = f.weights_
-            self.callback_(self, weights_t, val, grad, t, eta_t_1, delta)
+            self.callback_(self, weights_t, f.compute_output(), grad, t, eta, delta)
         if self.out_type_ == "last":
             return cur_X
         elif self.out_type_ == "best":
-            return Xs[np.argmin(grads)]
-        return 1 / t * np.sum(Xs)  # average
+            return X_min_grad
+        return X_sum / t  # average
