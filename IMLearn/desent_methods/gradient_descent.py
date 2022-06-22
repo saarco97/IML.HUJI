@@ -121,27 +121,30 @@ class GradientDescent:
 
         """
         t, delta = 0, np.inf
-        cur_X = f
-        X_sum, X_min_grad, grad, min_val = cur_X.weights_, 0, np.inf, np.inf
-        weights_t_1 = cur_X.weights_
-        eta = self.learning_rate_.lr_step(t)
-        self.callback_(self, np.copy(weights_t_1), cur_X.compute_output(), grad, t, eta, delta)
+        X_sum, X_min_grad, grad, min_val = f.weights_, 0, np.inf, np.inf
+        weights_t_1 = f.weights_
+        eta = self.learning_rate_.lr_step(t=t)
+        self.callback_(solver=self, weights=np.copy(weights_t_1), val=f.compute_output(X=X, y=y), grad=grad, t=t, eta=eta, delta=delta)
         while t < self.max_iter_ and delta > self.tol_:
-            eta = self.learning_rate_.lr_step(t)
-            grad = cur_X.compute_jacobian()
-            weights_t = cur_X.weights - eta * grad
-            # eta = self.learning_rate_.lr_step(t)
+            eta = self.learning_rate_.lr_step(t=t)
+            grad = f.compute_jacobian(X=X, y=y)
+            weights_t = f.weights - eta * grad
             delta = np.linalg.norm(weights_t_1 - weights_t)
             weights_t_1 = weights_t
-            cur_X.weights = weights_t
-            X_sum += cur_X.weights
-            if min_val > cur_X.compute_output():
-                min_val = cur_X.compute_output()
-                X_min_grad = cur_X
+            f.weights = weights_t
+            X_sum += f.weights
+            if min_val > f.compute_output(X=X, y=y):
+                min_val = f.compute_output(X=X, y=y)
+                X_min_grad = f
             t += 1
-            self.callback_(self, weights_t, cur_X.compute_output(), grad, t, eta, delta)
+            self.callback_(solver=self, weights=weights_t, val=f.compute_output(X=X, y=y), grad=grad, t=t, eta=eta, delta=delta)
         if self.out_type_ == "last":
-            return cur_X.weights
+            return f.weights
         elif self.out_type_ == "best":
             return X_min_grad.weights
         return X_sum / t  # average
+
+        # last_weights = f.weights
+        # if f.weights is None:
+        #     last_weights = np.random.normal(size=X.shape[1])
+        #

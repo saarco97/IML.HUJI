@@ -8,6 +8,8 @@ from IMLearn.desent_methods.modules import L1, L2
 from IMLearn.learners.classifiers.logistic_regression import LogisticRegression
 from IMLearn.utils import split_train_test
 
+from sklearn.metrics import roc_curve, auc
+
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
@@ -97,10 +99,10 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
             callback, values, weights = get_gd_state_recorder_callback()
             GD = GradientDescent(learning_rate=FixedLR(eta), callback=callback)
             GD.fit(f=f, X=None, y=None)
-            print(f"{module_name} norm, eta={eta}, lowest_loss={np.round(np.min(values), 9)}")
+            print(f"{module_name} norm, eta={eta}, lowest_loss={np.round(np.min(values), 4)}")
             plt = plot_descent_path(module, np.vstack(weights), title=f"{module_name} with step size of {eta}")
             # plt.show()
-            fig.add_traces([go.Scatter(x=np.arange(len(values)), y=np.concatenate(values))],
+            fig.add_traces([go.Scatter(x=np.arange(len(values)), y=values)],
                            rows=i // 2 + 1, cols=(i % 2) + 1)
         fig.update_layout(title_text=f"{module_name} norm")
         fig.show()
@@ -119,20 +121,19 @@ def compare_exponential_decay_rates(init: np.ndarray = np.array([np.sqrt(2), np.
         GD = GradientDescent(learning_rate=ExponentialLR(eta, gamma), callback=callback)
         GD.fit(f=f, X=None, y=None)
         print(f"gamma={gamma}, lowest_loss={np.round(np.min(values), 9)}")
-        fig.add_traces([go.Scatter(x=np.arange(len(values)), y=np.concatenate(values))],
+        fig.add_traces([go.Scatter(x=np.arange(len(values)), y=values)],
                        rows=i // 2 + 1, cols=(i % 2) + 1)
 
     # Plot algorithm's convergence for the different values of gamma
-    # fig.show()
+    fig.show()
 
     # Plot descent path for gamma=0.95
-    modules = {"L1": L1, "L2": L2}
-    for module_name, module in modules.items():
-        callback, values, weights = get_gd_state_recorder_callback()
-        GD = GradientDescent(learning_rate=ExponentialLR(eta, 0.95), callback=callback)
-        GD.fit(module(np.copy(init)), None, None)
-        fig = plot_descent_path(module, np.vstack(weights), title=f"${module_name}\ with\ \eta={eta}\ and\ \gamma={0.95}$")
-        fig.show()
+    callback, values, weights = get_gd_state_recorder_callback()
+    GD = GradientDescent(learning_rate=ExponentialLR(eta, 0.95), callback=callback)
+    GD.fit(L1(np.copy(init)), None, None)
+    fig = plot_descent_path(L1, np.vstack(weights),
+                            title=f"$L1\ with\ \eta={eta}\ and\ \gamma={0.95}$")
+    fig.show()
 
 
 def load_data(path: str = "../datasets/SAheart.data", train_portion: float = .8) -> \
@@ -172,15 +173,50 @@ def fit_logistic_regression():
     X_train, y_train, X_test, y_test = load_data()
 
     # Plotting convergence rate of logistic regression over SA heart disease data
-    raise NotImplementedError()
+    model = LogisticRegression()
+    model.fit(X_train.to_numpy(), y_train.to_numpy())
+    y_prob = model.predict_proba(X_train.to_numpy())
+    fpr, tpr, thresholds = roc_curve(y_train, y_prob)
+    fig = go.Figure(
+        data=[go.Scatter(x=[0, 1], y=[0, 1], mode="lines", line=dict(color="black", dash='dash'),
+                         name="Random Class Assignment"),
+              go.Scatter(x=fpr, y=tpr, mode='markers+lines', text=thresholds, name="", showlegend=False, marker_size=5,
+                         hovertemplate="<b>Threshold:</b>%{text:.3f}<br>FPR: %{x:.3f}<br>TPR: %{y:.3f}")],
+        layout=go.Layout(title=rf"$\text{{ROC Curve Of Fitted Model - AUC}}={auc(fpr, tpr):.6f}$",
+                         xaxis=dict(title=r"$\text{False Positive Rate (FPR)}$"),
+                         yaxis=dict(title=r"$\text{True Positive Rate (TPR)}$")))
+    fig.show()
+    alpha_star_idx = np.argmax(tpr - fpr)
+    alpha_star = thresholds[alpha_star_idx]
+    print(f"best alpha = {alpha_star}")
+    model.alpha_ = alpha_star
+    test_err = model.loss(X_test.to_numpy(), y_test.to_numpy())
+    print(f"Under that alpha, model's test error is {test_err}")
 
     # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify values
     # of regularization parameter
-    raise NotImplementedError()
+
+    def questions_10_11(penalty):
+        from IMLearn.model_selection import cross_validate
+        from IMLearn.metrics import misclassification_error
+        lambdas = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+        errors = np.array(
+            [cross_validate(LogisticRegression(penalty=penalty, alpha=0.5, lam=lam), X_train.to_numpy(),
+                            y_train.to_numpy(), misclassification_error)
+             for lam in lambdas])
+        best_lambda = lambdas[np.argmin(errors[:, 1])]
+        logistic_model = LogisticRegression(penalty=penalty, alpha=0.5, lam=best_lambda)
+        logistic_model.fit(X_train.to_numpy(), y_train.to_numpy())
+        print(f"lambda = {best_lambda}")
+        error = logistic_model.loss(X_test.to_numpy(), y_test.to_numpy())
+        print(f"Under that lambda, model's test error is {error}")
+
+    questions_10_11("l1")
+    questions_10_11("l2")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    # compare_fixed_learning_rates()
+    compare_fixed_learning_rates()
     compare_exponential_decay_rates()
     fit_logistic_regression()
