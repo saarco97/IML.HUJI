@@ -34,8 +34,7 @@ class L2(BaseModule):
         output: ndarray of shape (1,)
             Value of function at point self.weights
         """
-        return self.weights.T @ self.weights
-        # return np.linalg.norm(self.weights_).reshape(1, ) ** 2
+        return np.linalg.norm(self.weights_) ** 2
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """
@@ -52,7 +51,6 @@ class L2(BaseModule):
             L2 derivative with respect to self.weights at point self.weights
         """
         return self.weights_
-        # return 2 * self.weights_
 
 
 class L1(BaseModule):
@@ -82,7 +80,6 @@ class L1(BaseModule):
             Value of function at point self.weights
         """
         return np.linalg.norm(self.weights, ord=1)
-        # return np.linalg.norm(self.weights, ord=1).reshape(1, )
 
     def compute_jacobian(self, **kwargs) -> np.ndarray:
         """
@@ -137,7 +134,6 @@ class LogisticModule(BaseModule):
             Value of function at point self.weights
         """
         return -(1 / X.shape[0]) * np.sum(y * (X @ self.weights) - np.log(1 + np.exp(X @ self.weights)))
-        # return (-1) * np.sum(y @ np.dot(X, self.weights_) - np.log(1 + np.exp(X @ self.weights)))
 
     def compute_jacobian(self, X: np.ndarray, y: np.ndarray, **kwargs) -> np.ndarray:
         """
@@ -156,13 +152,8 @@ class LogisticModule(BaseModule):
         output: ndarray of shape (n_features,)
             Derivative of function with respect to self.weights at point self.weights
         """
-        m = 1 / (1 + np.exp((-1) * (self.weights @ X.T)))
-        return -(y @ X - X.T @ m) / X.shape[0]
-
-        # sigma_z = 1 / (1 + np.exp(X @ self.weights))
-        # f1_z_grad = sigma_z - 1
-        # f2_z_grad = sigma_z
-        # return np.sum(y @ f1_z_grad + (1 - y) @ f2_z_grad)
+        z = 1 / (1 + np.exp((-1) * (self.weights @ X.T)))
+        return -(y @ X - X.T @ z) / X.shape[0]
 
 
 class RegularizedModule(BaseModule):
@@ -273,4 +264,5 @@ class RegularizedModule(BaseModule):
         self.fidelity_module_.weights = weights
         self.regularization_module_.weights = weights
         if self.include_intercept_:
-            self.regularization_module_.weights = weights[1:]
+            self.regularization_module_.weights = np.insert(weights[1:], 0, 0)
+            # self.regularization_module_.weights = weights[1:]

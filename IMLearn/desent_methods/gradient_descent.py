@@ -143,8 +143,3 @@ class GradientDescent:
         elif self.out_type_ == "best":
             return X_min_grad.weights
         return X_sum / t  # average
-
-        # last_weights = f.weights
-        # if f.weights is None:
-        #     last_weights = np.random.normal(size=X.shape[1])
-        #

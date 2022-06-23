@@ -90,7 +90,7 @@ class LogisticRegression(BaseEstimator):
         """
         if self.include_intercept_:
             X = np.insert(X, 0, 1, axis=1)
-        init = np.random.normal(0, 1, size=X.shape[1])
+        init = np.random.normal(0, 1, size=X.shape[1]) / np.sqrt(X.shape[1])
         mod = LogisticModule()
         mod.weights = init
         penalty = {"l1": L1, "l2": L2}
